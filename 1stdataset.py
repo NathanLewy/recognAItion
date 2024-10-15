@@ -8,7 +8,7 @@ from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 from collections import Counter
 
-def extract_fixed_length_features(file_path, target_frames=6, window_size_ms=150):
+def extract_fixed_length_features(file_path, target_frames=20, window_size_ms=150):
     try:
         # Charger le fichier audio
         signal, sr = librosa.load(file_path, sr=16000)
@@ -17,7 +17,7 @@ def extract_fixed_length_features(file_path, target_frames=6, window_size_ms=150
         window_size_samples = int(sr * (window_size_ms / 1000.0))
 
         # Extraire les MFCCs
-        mfccs = librosa.feature.mfcc(y=signal, sr=sr, n_mfcc=13, hop_length=window_size_samples)
+        mfccs = librosa.feature.mfcc(y=signal, sr=sr, n_mfcc=20, hop_length=window_size_samples)
 
         # Extraire le pitch
         pitches, magnitudes = librosa.piptrack(y=signal, sr=sr, hop_length=window_size_samples)
@@ -55,7 +55,8 @@ def extract_fixed_length_features(file_path, target_frames=6, window_size_ms=150
             pitch_values = pitch_values[:target_frames]
 
         # Concaténer les moyennes des MFCCs et les moyennes des pitchs
-        features = np.hstack((mfcc_means, pitch_values))  # (14 + 14,)
+        #features = np.hstack((mfcc_means, pitch_values))  # (14 + 14,)
+        features = mfcc_means
         return features
     except Exception as e:
         print(f"Error loading {file_path}: {e}")
@@ -151,16 +152,17 @@ print("Labels in y_train:", label_encoder.classes_)
 print("Labels in y_test:", set(y_test))  # Print unique labels in y_test
 
 
-
-
-
 # Créer et entraîner le classificateur SVM
 print("Preparing to train the SVM model...")
 svm_model = SVC(kernel='linear', random_state=42)  # Assure-toi que tu utilises le bon kernel
 
 
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+
 print("Training...")
-print(len(X_train))
 svm_model.fit(X_train, y_train_encoded)
 print("Training completed.")
 
