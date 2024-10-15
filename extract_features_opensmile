@@ -1,0 +1,23 @@
+import opensmile
+import pandas as pd
+
+# Initialize the openSMILE object with the eGeMAPS feature set
+smile = opensmile.Smile(
+    feature_set=opensmile.FeatureSet.eGeMAPSv02,
+    feature_level=opensmile.FeatureLevel.LowLevelDescriptors
+)
+
+# Path to the .wav file you want to analyze
+audio_file = '03a01Fa.wav'
+
+# Extract features using openSMILE
+features = smile.process_file(audio_file)
+
+# Print the extracted features
+print(features)
+
+# Optionally, save the features to a CSV file
+features.to_csv('emotion_features.csv', index=False)
+
+# In a real-world scenario, you'd use these features to classify emotions
+# using a pre-trained machine learning model.
