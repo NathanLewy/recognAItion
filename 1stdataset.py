@@ -7,31 +7,23 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report
 from collections import Counter
+   
 
-def extract_fixed_length_features(file_path, target_frames=20, window_size_ms=150):
+
+def extract_pitches(file_path, target_frames=500):
     try:
         # Charger le fichier audio
         signal, sr = librosa.load(file_path, sr=16000)
 
-        # Définir la taille de la fenêtre en échantillons
-        window_size_samples = int(sr * (window_size_ms / 1000.0))
-
-        # Extraire les MFCCs
-        mfccs = librosa.feature.mfcc(y=signal, sr=sr, n_mfcc=20, hop_length=window_size_samples)
 
         # Extraire le pitch
-        pitches, magnitudes = librosa.piptrack(y=signal, sr=sr, hop_length=window_size_samples)
+        pitches, magnitudes = librosa.piptrack(y=signal, sr=sr)
 
         # Initialiser des listes pour les pitchs et MFCCs
         pitch_values = []
-        mfcc_means = []
 
         # Obtenir la moyenne pour chaque fenêtre
-        for t in range(mfccs.shape[1]):
-            # Moyenne des MFCCs pour la fenêtre t
-            mfcc_frame = mfccs[:, t]
-            mfcc_means.append(np.mean(mfcc_frame))
-
+        for t in range(pitches.shape[1]):
             # Moyenne du pitch pour la fenêtre t
             frame_pitches = pitches[:, t]
             if np.any(frame_pitches > 0):
@@ -41,27 +33,23 @@ def extract_fixed_length_features(file_path, target_frames=20, window_size_ms=15
             pitch_values.append(mean_pitch)
 
         # Convertir les listes en tableaux
-        mfcc_means = np.array(mfcc_means)  # (n_frames,)
         pitch_values = np.array(pitch_values)  # (n_frames,)
 
         # Sélectionner les 14 premières valeurs
-        if mfcc_means.shape[0] < target_frames:
+        if pitch_values.shape[0] < target_frames:
             # Remplir de zéros si moins de 14 fenêtres
-            mfcc_means = np.pad(mfcc_means, (0, target_frames - mfcc_means.shape[0]), mode='constant')
             pitch_values = np.pad(pitch_values, (0, target_frames - pitch_values.shape[0]), mode='constant')
         else:
             # Garder seulement les 14 premières valeurs
-            mfcc_means = mfcc_means[:target_frames]
             pitch_values = pitch_values[:target_frames]
 
-        # Concaténer les moyennes des MFCCs et les moyennes des pitchs
-        #features = np.hstack((mfcc_means, pitch_values))  # (14 + 14,)
-        features = mfcc_means
-        return features
+        return pitch_values
     except Exception as e:
         print(f"Error loading {file_path}: {e}")
         return None
-    
+
+
+
 # Path to the directory containing audio files
 audio_directory = 'D:\IA_dataset\EmoDB\wav'  # Modify this path based on your actual location
 
@@ -86,7 +74,7 @@ for file_name in os.listdir(audio_directory):
         file_path = os.path.join(audio_directory, file_name)
         
         # Extract features
-        features = extract_fixed_length_features(file_path)
+        features = extract_pitches(file_path)
         if features is not None:  # Ensure feature extraction succeeded
             data.append(features)
 
@@ -156,11 +144,6 @@ print("Labels in y_test:", set(y_test))  # Print unique labels in y_test
 print("Preparing to train the SVM model...")
 svm_model = SVC(kernel='linear', random_state=42)  # Assure-toi que tu utilises le bon kernel
 
-
-from sklearn.preprocessing import StandardScaler
-sc = StandardScaler()
-X_train = sc.fit_transform(X_train)
-X_test = sc.transform(X_test)
 
 print("Training...")
 svm_model.fit(X_train, y_train_encoded)
