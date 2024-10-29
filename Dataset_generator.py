@@ -1,41 +1,82 @@
+import os
+from pytubefix import YouTube
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-# Remplacez par votre clé API
-API_KEY = 'key'  # Assure-toi d'utiliser une clé valide
-VIDEO_ID = 'oTU25_wmWp4'  # ID de la vidéo YouTube
+# Configuration
+API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
+VIDEO_ID = 'oTU25_wmWp4'  # Remplacez par votre vidéo
+BASE_DIR = 'D:\\dataset_music_analysis'
 
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
-def get_comments(video_id):
-    """Récupère les commentaires d'une vidéo YouTube."""
+def create_video_directory(video_id):
+    """Crée un dossier pour la vidéo dans le répertoire de base."""
+    video_dir = os.path.join(BASE_DIR, video_id)
+    os.makedirs(video_dir, exist_ok=True)
+    return video_dir
+
+def get_all_comments(video_id):
+    """Récupère tous les commentaires d'une vidéo YouTube."""
     comments = []
-    
     try:
-        response = youtube.commentThreads().list(
+        request = youtube.commentThreads().list(
             part='snippet',
             videoId=video_id,
-            textFormat='plainText'
-        ).execute()
-
-        for item in response['items']:
-            comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
-            comments.append(comment)
-
+            textFormat='plainText',
+            maxResults=100
+        )
+        
+        while request:
+            response = request.execute()
+            for item in response['items']:
+                comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
+                # Filtrer les commentaires de plus de 20 caractères
+                if len(comment) > 20:
+                    comments.append(comment)
+                
+            request = youtube.commentThreads().list_next(request, response)
+    
     except HttpError as e:
         print(f"An error occurred while retrieving comments: {e}")
-        # Gérer spécifiquement les erreurs liées aux commentaires désactivés
-        if e.resp.status == 403:
-            print(f"Comments are disabled for video: {video_id}")
-        elif e.resp.status == 404:
-            print(f"Video not found: {video_id}")
-
+    
     return comments
 
-# Appel de la fonction
-comments = get_comments(VIDEO_ID)
+def save_comments(video_id, comments):
+    """Sauvegarde les commentaires dans un fichier texte."""
+    video_dir = create_video_directory(video_id)
+    comments_file_path = os.path.join(video_dir, 'comments.txt')
+    
+    with open(comments_file_path, 'w', encoding='utf-8') as file:
+        for comment in comments:
+            file.write(comment + '\n')
+    
+    print(f"Comments saved to {comments_file_path}")
+
+def download_audio(video_id):
+    """Télécharge l'audio de la vidéo YouTube et l'enregistre dans le dossier de la vidéo."""
+    video_dir = create_video_directory(video_id)
+    try:
+        url = f'https://www.youtube.com/watch?v={video_id}'
+        yt = YouTube(url)
+        audio_stream = yt.streams.filter(only_audio=True).first()
+        
+        if audio_stream is None:
+            print("No audio stream found for this video.")
+            return
+        
+        audio_file_path = os.path.join(video_dir, f"{video_id}.mp3")
+        audio_stream.download(output_path=video_dir, filename=f"{video_id}.mp3")
+        print(f"Audio downloaded as {audio_file_path}")
+        
+    except Exception as e:
+        print(f"An error occurred while downloading audio: {e}")
+
+# Appel des fonctions
+comments = get_all_comments(VIDEO_ID)
 if comments:
-    print("Retrieved comments:")
-    print(comments)
+    save_comments(VIDEO_ID, comments)
 else:
     print("No comments retrieved.")
+
+download_audio(VIDEO_ID)
