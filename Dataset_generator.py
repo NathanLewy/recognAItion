@@ -6,6 +6,7 @@ import csv,re
 from langdetect import detect, DetectorFactory
 import textstat
 import shutil
+import emotion_detection_comments as edc
 
 # Configuration
 API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
@@ -78,9 +79,8 @@ def is_quality_comment(comment, min_readability_score=100):
     """Vérifie si le commentaire a un niveau de qualité acceptable."""
     return (textstat.flesch_reading_ease(comment) >= min_readability_score)
 
-def save_comments(video_id, comments):
+def save_comments(audio_folder, comments):
     """Enregistre les commentaires dans un fichier CSV dans le même dossier que l'audio."""
-    audio_folder = BASE_DIR + '\\'+ str(video_id)
     filename = os.path.join(audio_folder, f'comments.csv')
     
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
@@ -88,8 +88,6 @@ def save_comments(video_id, comments):
         writer.writerow(['comments'])
         for comment in comments: # Nettoyer le commentaire
             writer.writerow([comment])  # Écriture du commentaire nettoyé
-
-    print(f"Comments for video {video_id} saved to {filename}.")
 
 def download_audio(video_id):
     """Télécharge l'audio de la vidéo YouTube et l'enregistre dans le dossier de la vidéo."""
@@ -138,7 +136,9 @@ def process_video(video_id):
     comments = get_all_comments(video_id)
     if comments:
         download_audio(video_id)
-        save_comments(video_id, comments)
+        audio_folder = BASE_DIR + '\\'+ str(video_id)
+        save_comments(audio_folder, comments)
+        edc.create_emotion_summary(audio_folder)
         
     else:
         print(f"No comments retrieved for video {video_id}.")
