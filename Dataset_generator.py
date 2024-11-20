@@ -44,13 +44,13 @@ def get_all_comments(video_id):
             maxResults=100
         )
         
-        while request and len(comments) < 50:  # Continue jusqu'à ce que 100 commentaires soient récupérés
+        while request and len(comments) < 200:  # Continue jusqu'à ce que 100 commentaires soient récupérés
             response = request.execute()
             for item in response['items']:
                 comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
-                # Filtrer les commentaires anglais de plus de 20 caractères
+                # Filtrer les commentaires anglais de plus de n caractères
                 cleaned_comment = clean_comment(comment)
-                if len(cleaned_comment) > 40:
+                if len(cleaned_comment) > 55:
                     if is_english(cleaned_comment) and is_quality_comment(cleaned_comment):
                         comments.append(cleaned_comment)
             
@@ -75,7 +75,7 @@ def is_english(comment):
     except:
         return False  # Retourne False en cas d'erreur
 
-def is_quality_comment(comment, min_readability_score=100):
+def is_quality_comment(comment, min_readability_score=95):
     """Vérifie si le commentaire a un niveau de qualité acceptable."""
     return (textstat.flesch_reading_ease(comment) >= min_readability_score)
 
@@ -154,8 +154,11 @@ def process_playlist(playlist_id):
         process_video(video_id)
 
 # Exemple d'appel
-PLAYLIST_ID = 'PLplXQ2cg9B_qrCVd1J_iId5SvP8Kf_BfS'
-process_playlist(PLAYLIST_ID)
+PLAYLIST_ID_long1 = 'PLplXQ2cg9B_qrCVd1J_iId5SvP8Kf_BfS'
+PLAYLIST_ID_long2='PL15B1E77BB5708555'
+PLAYLIST_ID_fear='PLoLk2PysO2f0s9NnA7Drkb3V-12Cj8b8U'
+PLAYLIST_ID_anger='PLknqyEOvGo1YgL11BN1m-YOxaFHl29elY'
+process_playlist(PLAYLIST_ID_anger)
 
 
 
