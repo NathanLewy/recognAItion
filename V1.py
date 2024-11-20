@@ -1,11 +1,13 @@
 import librosa
 import os
 import numpy as np
-import subprocess
+from collections import Counter
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
 
 
 
-    ### EXTRACTION DES CARACT2RISTIQUES ###
+    ### EXTRACTION DES CARACTERISTIQUES ###
 
 chemin_dossier = r"C:\Users\Alex\Desktop\CS\2A\Projet IA\recognaition\DATASET\wav"
 fichiers_audios = os.listdir(chemin_dossier)
@@ -41,16 +43,16 @@ for f in fichiers_audios:
     ### DIVISION DES SIGNAUX EN FENETRES ###
 
 # fenetre de T secondes 
-T = 0.02
+T = 0.04
 _, sr = librosa.load(os.path.join(chemin_dossier,fichiers_audios[0]), sr = None)
 nb_donnees_fenetre = int(T * sr)
 nb_chevauchement_fenetre = nb_donnees_fenetre   # gère le chevauchement entre les fenetres
 
 enregistrements_decoupes = []
-for e in enregistrements:
-    fenetres = librosa.util.frame(data, frame_length=nb_donnees_fenetre, hop_length=nb_chevauchement_fenetre)
+for i in range(len(enregistrements)):
+    fenetres = librosa.util.frame(enregistrements[i], frame_length=nb_donnees_fenetre, hop_length=nb_chevauchement_fenetre)
     fenetres = np.transpose(fenetres)
-    enregistrements_decoupes.append([fenetres,fenetres.shape])
+    enregistrements_decoupes.append(fenetres)
     # fenetre est un array dont chaque ligne est une fenetre 
 
 
@@ -67,16 +69,78 @@ Pitch = [extraire_pitch(enregistrements_decoupes[i]) for i in range(len(enregist
 """
 
 #nombre de coefs à extraire
-n_mfcc = 13
+n_mfcc = 3
+
+# fast fourrier transform 
+n_fft = 512  
+
+"""
+def extraire_mfcc(enregistrement_decoupe):
+    mfcc_features = np.array([[]])
+    for j in range(len(enregistrement_decoupe)):
+        mfcc_features = np.append(mfcc_features, np.transpose(librosa.feature.mfcc(y=enregistrement_decoupe[j], sr = sr, n_fft=n_fft, n_mfcc=n_mfcc)), axis=1)
+    return mfcc_features
+"""
 
 def extraire_mfcc(enregistrement_decoupe):
-    mfcc_features = []
-    for j in range(enregistrement_decoupe[1][0]):
-        mfcc_features.append(librosa.feature.mfcc(y=enregistrement_decoupe[0][j], sr = sr, n_mfcc=n_mfcc))
+    mfcc_features = np.empty((0, n_mfcc))  # Array initialisé avec 0 lignes, n_mfcc colonnes
+    for j in range(len(enregistrement_decoupe)):
+        mfcc_segment = np.transpose(librosa.feature.mfcc(y=enregistrement_decoupe[j], sr=sr, n_fft=n_fft, n_mfcc=n_mfcc))
+        mfcc_features = np.vstack([mfcc_features, mfcc_segment])  # Concaténer verticalement
+        #print(mfcc_segment)
+    #print(mfcc_features)
     return mfcc_features
 
-mfcc_features = [extraire_mfcc(enregistrements_decoupes[i]) for i in range(len(enregistrements_decoupes))]
+
+mfcc_features = [extraire_mfcc(enregistrements_decoupes[i]) for i in range(len(enregistrements_decoupes))] 
+#ne peut pas être convertie en array à cause des différence de dimensions entre ses éléments
+
+max = max([mfcc.shape[0] for mfcc in mfcc_features])
+mfcc_features_adapte = np.zeros((len(mfcc_features),max,n_mfcc))
+for i, mfcc in enumerate(mfcc_features):
+    mfcc_features_adapte[i, :mfcc.shape[0], :] = mfcc
+print("ok")
 
 
 
 
+"""
+    ### KNN ###
+
+class KNN:
+    def __init__(self, k=5):
+        self.k = k
+    
+    def entrainement(self, X, Y):
+        self.X_entrainement = list(X)
+        self.Y_entrainement = list(Y)
+
+    def prediction(self, x):
+        distances = np.linalg.norm(self.X_entrainement - x, axis = 1 )    
+        k_indices = np.argsort(distances)[:self.k].tolist  # Trouve les indices des k plus proches voisins
+        k_labels_proches = [self.Y_entrainement[i] for i in k_indices]  # Obtient les étiquettes des données les plus proches
+        most_common = Counter(k_labels_proches).most_common(1)  # Identifie l'étiquette la plus représentée
+        return most_common[0][0]
+
+
+    def predictions(self, X_test):
+        predictions = [self.prediction(x) for x in X_test]
+        return np.array(predictions)
+"""
+
+    ### ENTRAINEMENT ###
+
+# Diviser les données en ensembles d'entraînement et de test
+X_entrainement, X_test, Y_entrainement, Y_test = train_test_split(mfcc_features_adapte, emotions, test_size=0.2, random_state=42)
+X_entrainement = list(X_entrainement)
+X_test = list(X_test)
+Y_entrainement = list(Y_entrainement)
+Y_test = list(Y_test)
+
+knn = KNN(k=3)
+knn.entrainement(X_entrainement, Y_entrainement)    # Entrainement avec la classe KNN
+Y_pred = knn.predictions(X_test)    # Prédictions
+
+
+precision = accuracy_score(Y_test, Y_pred)
+print(f"Précision du modèle KNN : {precision * 100:.2f}%")
