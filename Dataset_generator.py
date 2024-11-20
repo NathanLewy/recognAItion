@@ -10,7 +10,7 @@ import shutil
 # Configuration
 API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
 VIDEO_ID = 'm3IqAolevVc'  # Remplacez par votre vidéo
-BASE_DIR = 'D:\\dataset_music_analysis'
+BASE_DIR = 'E:\\travail\dataset_music_analysis'
 
 # Fonction pour supprimer le répertoire existant
 def clear_directory(base_dir):
@@ -80,12 +80,12 @@ def is_quality_comment(comment, min_readability_score=100):
 
 def save_comments(video_id, comments):
     """Enregistre les commentaires dans un fichier CSV dans le même dossier que l'audio."""
-    audio_folder = f'D:/dataset_music_analysis/{video_id}'
+    audio_folder = BASE_DIR + '\\'+ str(video_id)
     filename = os.path.join(audio_folder, f'comments.csv')
     
     with open(filename, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['comment'])  # En-tête avec uniquement la colonne des commentaires
+        writer.writerow(['comments'])
         for comment in comments: # Nettoyer le commentaire
             writer.writerow([comment])  # Écriture du commentaire nettoyé
 
