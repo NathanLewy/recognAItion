@@ -51,7 +51,7 @@ def get_all_comments(video_id):
                 comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
                 # Filtrer les commentaires anglais de plus de n caractères
                 cleaned_comment = clean_comment(comment)
-                if len(cleaned_comment) > 55:
+                if len(cleaned_comment) > 55 and len(cleaned_comment)<512:
                     if is_english(cleaned_comment) and is_quality_comment(cleaned_comment):
                         comments.append(cleaned_comment)
             
