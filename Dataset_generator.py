@@ -7,13 +7,14 @@ from langdetect import detect, DetectorFactory
 import textstat
 import shutil
 import emotion_detection_comments as edc
+from dotenv import load_dotenv
 
-# Configuration
-API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
-VIDEO_ID = 'm3IqAolevVc'  # Remplacez par votre vidéo
-BASE_DIR = 'E:\\travail\\dataset_music_analysis'
-BASE_DIR = 'D:\\dataset_music_analysis'
+# Charger les variables d'environnement depuis le fichier .env
+load_dotenv()
+BASE_DIR = os.getenv("BASE_DIR_LAPTOP")
+API_KEY = os.getenv("API_KEY")
 
+print(BASE_DIR)
 # Fonction pour supprimer le répertoire existant
 def clear_directory(base_dir):
     """Supprime le répertoire de base s'il existe."""
@@ -51,7 +52,7 @@ def get_all_comments(video_id):
                 comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
                 # Filtrer les commentaires anglais de plus de n caractères
                 cleaned_comment = clean_comment(comment)
-                if len(cleaned_comment) > 55 and len(cleaned_comment)<512:
+                if len(cleaned_comment) > 55 and len(cleaned_comment)<300:
                     if is_english(cleaned_comment) and is_quality_comment(cleaned_comment):
                         comments.append(cleaned_comment)
             
@@ -154,12 +155,7 @@ def process_playlist(playlist_id):
         print(f"Processing video {video_id}")
         process_video(video_id)
 
-# Exemple d'appel
-PLAYLIST_ID_long1 = 'PLplXQ2cg9B_qrCVd1J_iId5SvP8Kf_BfS'
-PLAYLIST_ID_long2='PL15B1E77BB5708555'
-PLAYLIST_ID_fear='PLoLk2PysO2f0s9NnA7Drkb3V-12Cj8b8U'
-PLAYLIST_ID_anger='PLknqyEOvGo1YgL11BN1m-YOxaFHl29elY'
-process_playlist(PLAYLIST_ID_anger)
+
 
 
 
