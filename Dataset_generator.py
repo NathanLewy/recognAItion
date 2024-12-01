@@ -7,6 +7,8 @@ from langdetect import detect, DetectorFactory
 import textstat
 import shutil
 import emotion_detection_comments as edc
+from pydub import AudioSegment
+
 
 # Configuration
 API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
@@ -89,6 +91,7 @@ def save_comments(audio_folder, comments):
         for comment in comments: # Nettoyer le commentaire
             writer.writerow([comment])  # Écriture du commentaire nettoyé
 
+
 def download_audio(video_id):
     """Télécharge l'audio de la vidéo YouTube et l'enregistre dans le dossier de la vidéo."""
     video_dir = create_video_directory(video_id)
@@ -101,10 +104,22 @@ def download_audio(video_id):
             print("No audio stream found for this video.")
             return
         
-        audio_file_path = os.path.join(video_dir, f"{video_id}.mp3")
-        audio_stream.download(output_path=video_dir, filename=f"{video_id}.mp3")
-        print(f"Audio downloaded as {audio_file_path}")
+        # Obtenir le nom de fichier sans extension
+        audio_file_path = os.path.join(video_dir, f"{video_id}.m4a")
+        mp3_file_path = os.path.join(video_dir, f"{video_id}.mp3")
+
+        # Télécharge l'audio dans le format du stream (WebM ou M4A)
+        audio_stream.download(output_path=video_dir, filename=f"{video_id}")
         
+        # Load the .m4a file
+        audio = AudioSegment.from_file(audio_file_path, format="m4a")
+
+        # Export the audio as an MP3 file
+        audio.export(mp3_file_path, format="mp3")
+
+        os.remove(audio_file_path)
+        print(f"Audio converted to MP3 and saved")
+
     except Exception as e:
         print(f"An error occurred while downloading audio: {e}")
 
@@ -130,6 +145,8 @@ def get_video_ids_from_playlist(playlist_id):
         print(f"An error occurred while retrieving playlist: {e}")
     
     return video_ids
+
+
 
 def process_video(video_id):
     """Télécharge les commentaires et l'audio pour une vidéo spécifique."""
