@@ -13,7 +13,8 @@ from pydub import AudioSegment
 # Configuration
 API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
 VIDEO_ID = 'm3IqAolevVc'  # Remplacez par votre vidéo
-BASE_DIR = 'E:\\travail\dataset_music_analysis'
+BASE_DIR = 'E:\\travail\\dataset_music_analysis'
+BASE_DIR = 'D:\\dataset_music_analysis'
 
 # Fonction pour supprimer le répertoire existant
 def clear_directory(base_dir):
