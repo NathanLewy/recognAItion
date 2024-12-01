@@ -8,12 +8,13 @@ import textstat
 import shutil
 import emotion_detection_comments as edc
 from pydub import AudioSegment
-
+import random
+from dotenv import load_dotenv
 
 # Configuration
-API_KEY = 'AIzaSyBVUFKGabDqsD3MS6hpsDijwWqIvicnG9Q'
-VIDEO_ID = 'm3IqAolevVc'  # Remplacez par votre vidéo
-BASE_DIR = 'E:\\travail\\dataset_music_analysis'
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
+BASE_DIR = os.getenv('BASE_DIR')
 
 # Fonction pour supprimer le répertoire existant
 def clear_directory(base_dir):
@@ -148,6 +149,43 @@ def get_video_ids_from_playlist(playlist_id):
 
 
 
+
+def create_fragments(BASE_DIR, video_id, nombre_extraits, extrait_duree):
+    audio_folder = BASE_DIR + '\\'+ str(video_id)
+    audio_file = os.path.join(audio_folder, f'{video_id}.mp3')
+    output_folder = os.path.join(BASE_DIR, 'fragments')
+
+    # Charger le fichier audio
+    try:
+        audio = AudioSegment.from_mp3(audio_file)
+    except Exception as e:
+        print(f"Erreur lors du chargement du fichier audio : {e}")
+        return
+    
+    # Obtenir la durée totale de l'audio (en millisecondes)
+    audio_duree = len(audio)
+    
+    # Créer le dossier de sortie s'il n'existe pas
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
+    # Extraire les extraits de manière aléatoire
+    for i in range(nombre_extraits):
+        # Calculer un point de départ aléatoire pour chaque extrait
+        start_time = random.randint(0, audio_duree - extrait_duree)
+
+        # Extraire l'extrait de 3 secondes
+        extrait = audio[start_time:start_time + extrait_duree]
+
+        # Exporter l'extrait dans un fichier MP3
+        try:
+            extrait.export(os.path.join(output_folder, f"{i + 1}_{video_id}.mp3"), format="mp3")
+        except Exception as e:
+            print(f"Erreur lors de l'exportation de l'extrait {i + 1} : {e}")
+
+    print(f"{nombre_extraits} extraits ont été extraits et enregistrés dans '{output_folder}'.")
+
+
 def process_video(video_id):
     """Télécharge les commentaires et l'audio pour une vidéo spécifique."""
     comments = get_all_comments(video_id)
@@ -155,7 +193,8 @@ def process_video(video_id):
         download_audio(video_id)
         audio_folder = BASE_DIR + '\\'+ str(video_id)
         save_comments(audio_folder, comments)
-        edc.create_emotion_summary(audio_folder)
+        edc.create_emotion_summary(BASE_DIR,video_id)
+        create_fragments(BASE_DIR, video_id, 100, 3000)
         
     else:
         print(f"No comments retrieved for video {video_id}.")

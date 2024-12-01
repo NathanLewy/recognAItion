@@ -1,6 +1,6 @@
 import pandas as pd
 from transformers import pipeline
-
+import os
 
 # Initialiser le pipeline d'analyse des émotions (GoEmotions pour une gamme variée)
 emotion_analyzer = pipeline("text-classification", model="j-hartmann/emotion-english-distilroberta-base", return_all_scores=True)
@@ -17,7 +17,8 @@ def analyze_emotions(comment):
 
 
 #creer un fichier csv qui résume les emotions de la video
-def create_emotion_summary(file_path):
+def create_emotion_summary(BASE_DIR,video_id):
+    file_path = BASE_DIR + '\\'+ str(video_id)
     comments_data = pd.read_csv(file_path+'\comments.csv')
     # Appliquer l'analyse des émotions à chaque commentaire
     comments_data['emotion_scores'] = comments_data['comments'].apply(analyze_emotions)
@@ -29,10 +30,22 @@ def create_emotion_summary(file_path):
 
     # Calculer le bilan des émotions
     emotion_summary = comments_data[emotions].mean()
+    emotion_summary = pd.DataFrame([emotion_summary.values], columns=emotions)
+    emotion_summary["id"] = video_id
+    emotion_summary = emotion_summary[["id"] + emotions]
 
     # Sauvegarder uniquement le résumé dans un fichier CSV
-    output_file = file_path+'\\emotion_summary.csv'
-    emotion_summary.to_frame('score').to_csv(output_file, index_label='emotion', header=True)
+    output_file = BASE_DIR+'\\emotion_summary.csv'
+    output_exists = os.path.exists(output_file)
+    
+    if not output_exists:
+        emotion_summary.to_csv(output_file, index=False)
+        print("Le fichier n'existait pas. Il a été créé avec les nouvelles données.")
+    else:
+        # Si le fichier existe déjà, ajouter les nouvelles données
+        emotion_summary.to_csv(output_file, mode='a', header=False, index=False)
+        print("Les nouvelles données ont été ajoutées au fichier existant.")
+
 
     # Afficher le bilan global des émotions
     print("Bilan global des émotions :")
