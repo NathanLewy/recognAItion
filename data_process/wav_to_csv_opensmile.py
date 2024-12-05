@@ -6,8 +6,8 @@ import librosa
 
 class WavToCsvExtractor:
     def __init__(self, num_segments, columns_to_keep=None):
-        self.source_folder = "/home/pierres/PROJET S7/recognAItion/data/FilteredAudio"
-        self.target_folder = "/home/pierres/PROJET S7/recognAItion/data/filtered_audio_to_csv_not_organized"
+        self.source_folder = "/home/pierres/Projet_S7/recognAItion/data/FilteredAudio"
+        self.target_folder = "/home/pierres/Projet_S7/recognAItion/data/filtered_audio_to_csv_not_organized"
         self.num_segments = num_segments
         self.columns_to_keep = columns_to_keep
 

@@ -6,8 +6,8 @@ class CSVProcessor:
         """
         Initialize with paths to the sample and label files.
         """
-        self.sample_file = "/home/pierres/PROJET S7/recognAItion/data/sample.csv"
-        self.label_file = "/home/pierres/PROJET S7/recognAItion/data/labels.csv"
+        self.sample_file = "/home/pierres/Projet_S7/recognAItion/data/sample.csv"
+        self.label_file = "/home/pierres/Projet_S7/recognAItion/data/labels.csv"
         self.sample_df = pd.read_csv(self.sample_file)
         self.label_df = pd.read_csv(self.label_file)
         

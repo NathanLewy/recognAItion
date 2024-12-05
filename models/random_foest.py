@@ -1,42 +1,35 @@
+from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier  # Import Random Forest
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.datasets import make_classification
+import matplotlib.pyplot as plt
+import numpy as np
+label_file = "/home/pierres/PROJET S7/recognAItion/data/labels.csv"
+sample_file = "/home/pierres/PROJET S7/recognAItion/data/sample.csv"
 
-# Load training and evaluation data
-training_file = "/home/pierres/PROJET S7/recognAItion/data/training_combined.csv"
-evaluation_file = "/home/pierres/PROJET S7/recognAItion/data/evaluation_combined.csv"
+samples_eval = "/home/pierres/PROJET S7/recognAItion/data/sample_eval.csv"
+label_eval = "/home/pierres/PROJET S7/recognAItion/data/label_eval.csv"
 
 # Load datasets
-train_data = pd.read_csv(training_file)
-eval_data = pd.read_csv(evaluation_file)
+Y = pd.read_csv(label_file)
+X = pd.read_csv(sample_file)
 
-# Separate features and target for training data
-X_train = train_data.drop(columns=["emotion"])  # Features
-y_train = train_data["emotion"]  # Target
+Y = np.array(Y)
 
-# Separate features and target for evaluation data
-X_eval = eval_data.drop(columns=["emotion"])  # Features
-y_eval = eval_data["emotion"]  # Target
+Y=Y.ravel()
 
-# Initialize the Random Forest Classifier
-model = RandomForestClassifier(random_state=42, n_estimators=100)  # n_estimators defines number of trees
+eval_data = pd.read_csv(samples_eval)
+eval_label_data = pd.read_csv(label_eval)
+L= []
+for k in range(1,20):
+    M = []
+    for l in range(3):
+        clf = RandomForestClassifier(max_depth=1000,n_estimators=k*10)
+        clf.fit(X,Y)
+        m = clf.score(eval_data,eval_label_data)
+        M.append(m)
+    avg = np.mean(M)
+    L.append(avg)
 
-# Train the model
-print("Training the random forest model...")
-model.fit(X_train, y_train)
-
-# Make predictions on evaluation data
-print("Evaluating the model...")
-y_pred = model.predict(X_eval)
-
-# Calculate accuracy
-accuracy = accuracy_score(y_eval, y_pred)
-print(f"Accuracy: {accuracy:.2f}")
-
-# Print classification report
-print("\nClassification Report:")
-print(classification_report(y_eval, y_pred))
-
-# Print confusion matrix
-print("\nConfusion Matrix:")
-print(confusion_matrix(y_eval, y_pred))
+plt.plot([k*10 for k in range(1,20)],L)
+    
+plt.show()

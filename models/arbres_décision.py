@@ -4,11 +4,11 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 import matplotlib.pyplot as plt
 import numpy as np
 # Load training and evaluation data
-label_file = "/home/pierres/PROJET S7/recognAItion/data/labels.csv"
-sample_file = "/home/pierres/PROJET S7/recognAItion/data/sample.csv"
+label_file = "/home/pierres/Projet_S7/recognAItion/data/labels.csv"
+sample_file = "/home/pierres/Projet_S7/recognAItion/data/sample.csv"
 
-samples_eval = "/home/pierres/PROJET S7/recognAItion/data/sample_eval.csv"
-label_eval = "/home/pierres/PROJET S7/recognAItion/data/label_eval.csv"
+samples_eval = "/home/pierres/Projet_S7/recognAItion/data/sample_eval.csv"
+label_eval = "/home/pierres/Projet_S7/recognAItion/data/label_eval.csv"
 
 # Load datasets
 train_data = pd.read_csv(label_file)
@@ -21,7 +21,7 @@ L= []
 for k in range(1,20):
     M = []
     for l in range(10):
-        clf = tree.DecisionTreeClassifier(max_depth=k)
+        clf = tree.DecisionTreeClassifier()
         clf = clf.fit(sample_data,train_data)
         m = clf.score(eval_data,eval_label_data)
         M.append(m)
