@@ -9,6 +9,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from torch.utils.data import Dataset, DataLoader
 from dotenv import load_dotenv
+from concurrent.futures import ProcessPoolExecutor
 
 # Classe du modèle LSTM (identique à ce que vous avez déjà)
 class Model(nn.Module):
@@ -52,8 +53,10 @@ def prepare_data(BASE_DIR, fragments_dir, emotion_summary_file, n_mfcc=13):
     for col in emotion_columns:
         emotion_summary_df[col] = label_encoder.fit_transform(emotion_summary_df[col])
     
+    counter = 0
     # Parcourir le dossier des fichiers audio (MP3)
     for file_name in os.listdir(fragments_dir):
+        print(str(counter) + " out of " +str(len(os.listdir(fragments_dir))))
         if file_name.endswith(".mp3"):
             video_id = file_name.split('_',1)[1][:-4]  # extraire le video_id du nom du fichier
             # Vérifier si le video_id existe dans le fichier CSV
@@ -69,6 +72,7 @@ def prepare_data(BASE_DIR, fragments_dir, emotion_summary_file, n_mfcc=13):
                 # Extraire l'émotion pour ce `video_id` (moyenne des émotions)
                 emotion_data = emotion_summary_df[emotion_summary_df['id'] == video_id][emotion_columns].values
                 y.append(emotion_data.flatten())  # C'est un tableau 1D des émotions
+        counter+=1
     
     # Convertir en numpy arrays
     X = np.array(X)
@@ -79,6 +83,8 @@ def prepare_data(BASE_DIR, fragments_dir, emotion_summary_file, n_mfcc=13):
     y_tensor = torch.tensor(y, dtype=torch.float32)
     
     return X_tensor, y_tensor
+
+
 
 
 # Entraînement du modèle
@@ -128,6 +134,7 @@ BASE_DIR = os.getenv("BASE_DIR")
 fragments_dir = os.path.join(BASE_DIR, 'fragments')
 emotion_summary_file = os.path.join(BASE_DIR, 'emotion_summary.csv')
 
+print("preparing data")
 X, y = prepare_data(BASE_DIR, fragments_dir, emotion_summary_file)
 
 # Séparation des données en ensemble d'entraînement et de validation (80/20)
@@ -148,6 +155,7 @@ num_epochs = 60
 learning_rate = 0.001
 
 # Initialiser le modèle
+print("intizializing model")
 model = Model(input_size=input_size, hidden_size=hidden_size, output_size=output_size)
 criterion = nn.MSELoss()  # Utilisation de la perte MSE pour régression des émotions
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
