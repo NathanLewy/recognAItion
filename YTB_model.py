@@ -46,7 +46,7 @@ def load_data_with_temporal_features(path):
                 
             count += 1
             print(f"{count} out of 21500")
-            if count > 1500:
+            if count > 10000:
                 return data
     return data
 
@@ -71,7 +71,7 @@ X_padded = torch.stack([torch.cat([seq, torch.zeros(max_seq_length - seq.shape[0
 
 # Séparer les données en entraînement et test
 X_train, X_test, y_train, y_test, lengths_train, lengths_test = train_test_split(
-    X_padded, y, sequence_lengths, test_size=0.25, random_state=42
+    X_padded, y, sequence_lengths, test_size=0.4, random_state=42
 )
 
 
@@ -115,7 +115,7 @@ class Model(nn.Module):
 
 # Initialisation du modèle
 input_size = X_padded.shape[2]
-hidden_size = 150
+hidden_size = 164
 output_size = 7  # Le nombre d'émotions
 num_layers = 3
 
@@ -163,7 +163,7 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=10, device
         epoch_loss = running_loss / total_samples
         epoch_accuracy = correct_predictions / total_samples
         
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f})")
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}")
 
 
 
@@ -207,3 +207,7 @@ train_model(model, train_loader, criterion, optimizer, num_epochs=30, device=dev
 
 # Évaluation du modèle
 evaluate_model(model, test_loader, criterion, device=device)
+
+
+
+torch.save(model.state_dict(),"emotion_recognition_lstm.pth")
