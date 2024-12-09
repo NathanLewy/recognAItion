@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 # Configuration
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
-BASE_DIR = os.getenv('BASE_DIR')
+BASE_DIR = os.getenv('YTB_DIR')
 
 # Fonction pour supprimer le répertoire existant
 def clear_directory(base_dir):
@@ -24,7 +24,7 @@ def clear_directory(base_dir):
         print(f"Directory {base_dir} cleared.")
 
 # Appeler la fonction pour nettoyer le répertoire au début
-clear_directory(BASE_DIR)
+#clear_directory(BASE_DIR)
 
 youtube = build('youtube', 'v3', developerKey=API_KEY)
 
@@ -194,7 +194,7 @@ def process_video(video_id):
         audio_folder = BASE_DIR + '\\'+ str(video_id)
         save_comments(audio_folder, comments)
         edc.create_emotion_summary(BASE_DIR,video_id)
-        create_fragments(BASE_DIR, video_id, 100, 3000)
+        create_fragments(BASE_DIR, video_id, 50, 6000)
         
     else:
         print(f"No comments retrieved for video {video_id}.")
@@ -214,7 +214,7 @@ PLAYLIST_ID_long1 = 'PLplXQ2cg9B_qrCVd1J_iId5SvP8Kf_BfS'
 PLAYLIST_ID_long2='PL15B1E77BB5708555'
 PLAYLIST_ID_fear='PLoLk2PysO2f0s9NnA7Drkb3V-12Cj8b8U'
 PLAYLIST_ID_anger='PLknqyEOvGo1YgL11BN1m-YOxaFHl29elY'
-process_playlist(PLAYLIST_ID_anger)
+process_playlist(PLAYLIST_ID_long1)
 
 
 
