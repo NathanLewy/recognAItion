@@ -18,16 +18,16 @@ eval_data = pd.read_csv(samples_eval)
 eval_label_data = pd.read_csv(label_eval)
 
 L= []
-for k in range(1,20):
+for k in range(1,30):
     M = []
-    for l in range(10):
-        clf = tree.DecisionTreeClassifier()
+    for l in range(30):
+        clf = tree.DecisionTreeClassifier(max_depth = k)
         clf = clf.fit(sample_data,train_data)
         m = clf.score(eval_data,eval_label_data)
         M.append(m)
     avg = np.mean(M)
     L.append(avg)
 
-plt.plot([k for k in range(1,20)],L)
+plt.plot([k for k in range(1,30)],L)
     
 plt.show()
