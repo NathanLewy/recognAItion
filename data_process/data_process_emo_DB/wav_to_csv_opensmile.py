@@ -20,6 +20,17 @@ class WavToCsvExtractor:
         # Create the target folder if it doesn't exist
         os.makedirs(self.target_folder, exist_ok=True)
 
+        # Clear the target folder
+        self.clear_target_folder()
+
+    def clear_target_folder(self):
+        """Deletes all files in the target folder."""
+        if os.path.exists(self.target_folder):
+            for file_name in os.listdir(self.target_folder):
+                file_path = os.path.join(self.target_folder, file_name)
+                if os.path.isfile(file_path):
+                    os.remove(file_path)
+
     def process_audio(self, wav_file):
         """
         Process a single .wav file and extract its features into a .csv file.
@@ -37,9 +48,6 @@ class WavToCsvExtractor:
         print(f"Processing {wav_file}...")
         features = self.smile.process_file(source_path)
         features = features.reset_index()
-
-        # Print out the columns of features to inspect
-
 
         segment_features = []
         for i in range(self.num_segments):
@@ -75,3 +83,4 @@ class WavToCsvExtractor:
 
         for wav_file in wav_files:
             self.process_audio(wav_file)
+

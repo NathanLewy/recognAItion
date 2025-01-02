@@ -1,8 +1,8 @@
-from wav_to_csv_opensmile import WavToCsvExtractor
-from split_emotion_AudioWAV import AudioFilter
-from csv_to_train_test import CsvDataOrganizer
+from Filteredaudio import AudioFilter
 from csv_organizer import CsvBatchTransformer
+from csv_to_train_test import CsvDataOrganizer
 from shuffle import CSVProcessor
+from wav_to_csv_opensmile import WavToCsvExtractor
 
 # List of all possible columns from eGeMAPSv02 feature set
 features = [
@@ -25,24 +25,25 @@ columns_to_keep = [
 
 ]
 num_segments = 20
-#emotions_to_pick_from = ["HAP","ANG","DIS","FEA","NEU","SAD"] il faut changer d'autres parties du code pour que ça marche ça 
-emotions = ["ANG","HAP"]
+#emotions_to_pick_from = ["F","N","W","T","A","L"] il faut changer d'autres parties du code pour que ça marche ça 
+emotions = ['T','F','W','A']
 
 filter_ang_hap = AudioFilter(emotions)
 extractor = WavToCsvExtractor(num_segments,columns_to_keep = columns_to_keep)
-sample_labels = CsvDataOrganizer()
+transformer = CsvBatchTransformer()
+organizer = CsvDataOrganizer()
 
-transfomer = CsvBatchTransformer()
 
-# Process all files
-filter_ang_hap.filter_files()
+
+
+filter_ang_hap.filter_and_copy_files()
 extractor.process_all_files()
-transfomer.process_all_files()
-sample_labels.create_samples_and_labels()
-processor = CSVProcessor()
+transformer.process_all_files()
+organizer.create_samples_and_labels()
 
+processor = CSVProcessor()
 processor.shuffle_and_extract(
-    output_sample_file="/home/pierres/Projet_S7/recognAItion/data/sample_eval.csv",
-    output_label_file="/home/pierres/Projet_S7/recognAItion/data/label_eval.csv",
+    output_sample_file="/home/pierres/Projet_S7/recognAItion/data_emodb/sample_eval.csv",
+    output_label_file="/home/pierres/Projet_S7/recognAItion/data_emodb/label_eval.csv",
     fraction=0.2  # Extract 20% of the data
 )
