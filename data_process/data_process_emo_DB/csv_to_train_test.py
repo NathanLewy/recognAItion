@@ -25,6 +25,7 @@ class CsvDataOrganizer:
         csv_files = [f for f in os.listdir(self.source_folder) if f.endswith('.csv')]
 
         for csv_file in csv_files:
+            print(csv_file)
             file_path = os.path.join(self.source_folder, csv_file)
 
             # Read the second line (excluding the header) of the current CSV file
@@ -32,18 +33,33 @@ class CsvDataOrganizer:
 
             if not df.empty:
                 samples.append(df.iloc[0].tolist())  # Add the second line as a list to samples
+                print(df.iloc[0].tolist)
 
-            # Assign a label based on the presence of "T" in the file name
-            label = 1 if 'T' in csv_file else 0
+            # Assign a label based on the presence of specific letters in the file name
+            if 'W' in csv_file:
+                label = 0
+            elif 'E' in csv_file:
+                label = 1
+            elif 'A' in csv_file:
+                label = 2
+            elif 'F' in csv_file:
+                label = 3
+            elif 'T' in csv_file:
+                label = 4
+            elif 'N' in csv_file:
+                label = 5
+            else:
+                label = -1  # Default case if none of the letters are found (optional)
+
             labels.append(label)
+            print(label)
 
         # Save samples and labels to their respective CSV files
         samples_df = pd.DataFrame(samples)
         labels_df = pd.DataFrame(labels, columns=['Label'])
-
+        print(samples[-1:-9],labels[-1:-9])
         samples_df.to_csv(self.samples_file, index=False, header=False)
         labels_df.to_csv(self.labels_file, index=False, header=False)
 
         print(f"Samples saved to {self.samples_file}")
         print(f"Labels saved to {self.labels_file}")
-

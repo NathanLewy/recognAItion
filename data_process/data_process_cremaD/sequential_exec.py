@@ -26,8 +26,10 @@ columns_to_keep = [
 
 ]
 num_segments = 20
-#emotions_to_pick_from = ["HAP","ANG","DIS","FEA","NEU","SAD"] il faut changer d'autres parties du code pour que ça marche ça 
-emotions = ["ANG","HAP"]
+#emotions_to_pick_from = ["HAP","ANG","DIS","NEU","SAD","FEA"] il faut changer d'autres parties du code pour que ça marche ça 
+#W = Anger, E = disgust, A = fear, F = happineess, T = sadness, N = neutral
+#ANG = 0, DIS = 1, FEA = 2,HAP = 3,SAD = 4, NEU = 5
+emotions = ["ANG","HAP","DIS","NEU","SAD","FEA"]
 
 filter_ang_hap = AudioFilter(emotions)
 extractor = WavToCsvExtractor(num_segments,columns_to_keep = columns_to_keep)
@@ -43,7 +45,7 @@ sample_labels.create_samples_and_labels()
 processor = CSVProcessor()
 
 processor.shuffle_and_extract(
-    output_sample_file="/home/pierres/PROJET S7/recognAItion/data/sample_eval.csv",
-    output_label_file="/home/pierres/PROJET S7/recognAItion/data/label_eval.csv",
+    output_sample_file="/home/pierres/Projet_S7/recognAItion/data/sample_eval.csv",
+    output_label_file="/home/pierres/Projet_S7/recognAItion/data/label_eval.csv",
     fraction=0.2  # Extract 20% of the data
 )

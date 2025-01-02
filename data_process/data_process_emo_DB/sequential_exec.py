@@ -25,7 +25,9 @@ columns_to_keep = [
 
 ]
 num_segments = 20
-#emotions_to_pick_from = ["F","N","W","T","A","L"] il faut changer d'autres parties du code pour que ça marche ça 
+#emotions_to_pick_from = ["F","N","W","T","A","E"] il faut changer d'autres parties du code pour que ça marche ça 
+#W = Anger, E = disgust, A = fear, F = happineess, T = sadness, N = neutral
+#W = 0, E = 1, A = 2,F = 3,T = 4, N = 5
 emotions = ['T','F','W','A']
 
 filter_ang_hap = AudioFilter(emotions)

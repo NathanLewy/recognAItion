@@ -22,12 +22,28 @@ class CsvDataOrganizer:
 
             if not df.empty:
                 samples.append(df.iloc[0].tolist())  # Add the second line as a list to samples
+          
 
-            # Assign a label based on the presence of "ANG" in the file name
-            label = 1 if 'ANG' in csv_file else 0
+            # Assign a label based on the presence of specific emotion codes in the file name
+            if 'ANG' in csv_file:
+                label = 0
+            elif 'DIS' in csv_file:
+                label = 1
+            elif 'FEA' in csv_file:
+                label = 2
+            elif 'HAP' in csv_file:
+                label = 3
+            elif 'SAD' in csv_file:
+                label = 4
+            elif 'NEU' in csv_file:
+                label = 5
+            else:
+                label = -1  # Default case if no matching label is found (optional)
+
             labels.append(label)
-
+           
         # Save samples and labels to their respective CSV files
+      
         samples_df = pd.DataFrame(samples)
         labels_df = pd.DataFrame(labels, columns=['Label'])
 
