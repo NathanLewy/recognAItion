@@ -9,8 +9,8 @@ class CSVProcessor:
         """
         self.sample_file = "/home/pierres/Projet_S7/recognAItion/data_final/sample_equi.csv"
         self.label_file = "/home/pierres/Projet_S7/recognAItion/data_final/label_equi.csv"
-        self.sample_df = pd.read_csv(self.sample_file)
-        self.label_df = pd.read_csv(self.label_file)
+        self.sample_df = pd.read_csv(self.sample_file,skiprows = 1)
+        self.label_df = pd.read_csv(self.label_file,skiprows = 1)
         
         # Ensure both DataFrames have the same number of rows
         assert len(self.sample_df) == len(self.label_df), "The files do not have the same number of lines."
@@ -77,3 +77,4 @@ processor.shuffle_and_extract(
     output_label_file="/home/pierres/Projet_S7/recognAItion/data_final/label_eval.csv",
     fraction=0.2  # Extract 20% of the data
 )
+

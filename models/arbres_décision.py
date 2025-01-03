@@ -20,7 +20,7 @@ eval_label_data = pd.read_csv(label_eval)
 L= []
 for k in range(1,30):
     M = []
-    for l in range(30):
+    for l in range(10):
         clf = tree.DecisionTreeClassifier(max_depth = k)
         clf = clf.fit(sample_data,train_data)
         m = clf.score(eval_data,eval_label_data)

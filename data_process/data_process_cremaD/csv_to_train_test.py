@@ -22,7 +22,7 @@ class CsvDataOrganizer:
 
             if not df.empty:
                 samples.append(df.iloc[0].tolist())  # Add the second line as a list to samples
-          
+                
 
             # Assign a label based on the presence of specific emotion codes in the file name
             if 'ANG' in csv_file:

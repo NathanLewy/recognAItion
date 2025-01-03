@@ -46,10 +46,12 @@ class CSVProcessor:
         # Remove the extracted rows and save the remaining data back to the original files
         remaining_sample_df = sample_df_shuffled.iloc[num_rows:].reset_index(drop=True)
         remaining_label_df = label_df_shuffled.iloc[num_rows:].reset_index(drop=True)
+        
 
         remaining_sample_df.to_csv(self.sample_file, index=False)
         remaining_label_df.to_csv(self.label_file, index=False)
 
-        print(f"Remaining data saved back to {self.sample_file} and {self.label_file}.")
+       
 
+        print(f"Remaining data saved back to {self.sample_file} and {self.label_file}.")
 

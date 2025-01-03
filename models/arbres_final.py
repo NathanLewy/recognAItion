@@ -1,30 +1,28 @@
-from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
-from sklearn.datasets import make_classification
+from sklearn import tree
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 import numpy as np
-label_file = "/home/pierres/Projet_S7/recognAItion/data/labels.csv"
-sample_file = "/home/pierres/Projet_S7/recognAItion/data/sample.csv"
+# Load training and evaluation data
+label_file = "/home/pierres/Projet_S7/recognAItion/data_final/label_equi.csv"
+sample_file = "/home/pierres/Projet_S7/recognAItion/data/sample_equi.csv"
 
 samples_eval = "/home/pierres/Projet_S7/recognAItion/data/sample_eval.csv"
 label_eval = "/home/pierres/Projet_S7/recognAItion/data/label_eval.csv"
 
 # Load datasets
-Y = pd.read_csv(label_file)
-X = pd.read_csv(sample_file)
-
-Y = np.array(Y)
-
-Y=Y.ravel()
+train_data = pd.read_csv(label_file)
+sample_data = pd.read_csv(sample_file)
 
 eval_data = pd.read_csv(samples_eval)
 eval_label_data = pd.read_csv(label_eval)
+
 L= []
 for k in range(1,30):
     M = []
-    for l in range(15):
-        clf = RandomForestClassifier(max_depth=k)
-        clf.fit(X,Y)
+    for l in range(10):
+        clf = tree.DecisionTreeClassifier(max_depth = k)
+        clf = clf.fit(sample_data,train_data)
         m = clf.score(eval_data,eval_label_data)
         M.append(m)
     avg = np.mean(M)

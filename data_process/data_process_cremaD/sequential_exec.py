@@ -46,6 +46,6 @@ processor = CSVProcessor()
 
 processor.shuffle_and_extract(
     output_sample_file="/home/pierres/Projet_S7/recognAItion/data/sample_eval.csv",
-    output_label_file="/home/pierres/Projet_S7/recognAItion/data/label_eval.csv",
+    output_label_file="/home/pierres/ProS7/recognAItion/data/label_eval.csv",
     fraction=0.2  # Extract 20% of the data
 )

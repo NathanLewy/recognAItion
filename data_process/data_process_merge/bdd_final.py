@@ -22,10 +22,10 @@ class CsvEquiCombiner:
 
     def combine_and_shuffle_csv_files(self):
         # Load the input files
-        sample_emodb_df = pd.read_csv(self.sample_emodb_file, header=None)
-        label_emodb_df = pd.read_csv(self.label_emodb_file, header=None)
-        sample_data_df = pd.read_csv(self.sample_data_file, header=None)
-        label_data_df = pd.read_csv(self.label_data_file, header=None)
+        sample_emodb_df = pd.read_csv(self.sample_emodb_file, header=None,skiprows = 1)
+        label_emodb_df = pd.read_csv(self.label_emodb_file, header=None,skiprows = 1)
+        sample_data_df = pd.read_csv(self.sample_data_file, header=None,skiprows = 1)
+        label_data_df = pd.read_csv(self.label_data_file, header=None,skiprows = 1)
 
         # Determine the size of the smallest file
         min_size = min(len(sample_emodb_df), len(sample_data_df))
