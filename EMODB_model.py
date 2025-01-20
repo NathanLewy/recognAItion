@@ -72,7 +72,7 @@ X_padded = torch.stack([torch.cat([seq, torch.zeros(max_seq_length - seq.shape[0
 
 # Séparer les données en entraînement et test
 X_train, X_test, y_train, y_test, lengths_train, lengths_test = train_test_split(
-    X_padded, y, sequence_lengths, test_size=0.25, random_state=42
+    X_padded, y, sequence_lengths, test_size=0.2, random_state=42
 )
 
 # Dataset et DataLoader
@@ -98,7 +98,7 @@ test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 class Model(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_layers=1):
         super(Model, self).__init__()
-        self.LSTM = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.LSTM = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
         self.fc = nn.Linear(hidden_size, output_size)
         
     def forward(self, input, lengths):
@@ -113,7 +113,7 @@ class Model(nn.Module):
 
 # Initialisation du modèle
 input_size = X_padded.shape[2]
-hidden_size = 150
+hidden_size = 160
 output_size = len(label_encoder.classes_)
 num_layers = 3
 
@@ -221,7 +221,7 @@ def evaluate_model(model, test_loader, criterion, label_encoder, device='cpu'):
 
 # Entraînement du modèle
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-train_model(model, train_loader, criterion, optimizer, num_epochs=15, device=device)
+train_model(model, train_loader, criterion, optimizer, num_epochs=10, device=device)
 
 # Évaluation du modèle
 evaluate_model(model, test_loader, criterion, label_encoder, device=device)
