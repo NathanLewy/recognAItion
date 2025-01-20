@@ -12,13 +12,34 @@ from sklearn.metrics import classification_report, confusion_matrix
 import numpy as np
 
 # Fonction pour extraire l'émotion depuis le nom du fichier
-def extract_emotion_cremad(filename):
+def extract_emotion_emodb(filename):
     emotions_map = {
+        'W': 'anger',
+        'L': 'boredom',
+        'E': 'disgust',
+        'A': 'fear',
+        'F': 'happiness',
+        'T': 'sadness',
+        'N': 'neutral'
+    }
+    emotions_map_common = {
+        'W': 'anger',
+        'T': 'sadness',
+        'E': 'disgust',
+        'H': 'hapiness',
+        'F': 'fear',
+        'N': 'neutral'
+    }
+    return emotions_map_common.get(filename[5], 'unknown')
+
+# Fonction pour extraire l'émotion depuis le nom du fichier
+def extract_emotion_cremad(filename):
+    emotions_map_common = {
         'ANG': 'anger',
         'SAD': 'sadness',
         'DIS': 'disgust',
         'FEA': 'fear',
-        'HAP': 'happiness',
+        'HAP': 'hapiness',
         'NEU': 'neutral'
     }
     emotions_partial = {
@@ -27,16 +48,18 @@ def extract_emotion_cremad(filename):
         'NEU': 'neutral'
 
     }
-    return emotions_map.get(filename[9:12], 'unknown')
+    if filename[13:15]=='HI':
+        pass
+    return emotions_map_common.get(filename[9:12], 'unknown')
 
 # Charger les données avec les séquences temporelles
-def load_data_with_temporal_features(path):
+def load_data_with_temporal_features(path,extractor):
     data = []
     for root, _, files in os.walk(path):
         for file in files:
             if file.endswith('.wav'):
                 filepath = os.path.join(root, file)
-                emotion = extract_emotion_cremad(file)
+                emotion = extractor(file)
                 
                 if emotion!='unknown':
                     # Charger l'audio
@@ -52,9 +75,11 @@ def load_data_with_temporal_features(path):
     return data
 
 
-path = './CremaD/AudioWAV/'
-data = load_data_with_temporal_features(path)
-print(len(data))
+emodbdir = './EmoDB/wav/'
+cremaddir = './CremaD/AudioWAV/'
+data = load_data_with_temporal_features(emodbdir,extract_emotion_emodb)+load_data_with_temporal_features(cremaddir,extract_emotion_cremad)
+
+
 
 # Encodage des labels
 label_encoder = LabelEncoder()
@@ -122,9 +147,9 @@ class Model(nn.Module):
 
 # Initialisation du modèle
 input_size = X_padded.shape[2]
-hidden_size = 200
+hidden_size = 150
 output_size = len(label_encoder.classes_)
-num_layers = 5
+num_layers = 4
 
 model = Model(input_size, hidden_size, output_size, num_layers)
 
