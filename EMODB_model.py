@@ -1,224 +1,239 @@
+import torch
+import torch.nn as nn
 import os
-from pytubefix import YouTube
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-import csv,re
-from langdetect import detect, DetectorFactory
-import textstat
-import shutil
-import emotion_detection_comments as edc
-from pydub import AudioSegment
-import random
-from dotenv import load_dotenv
+import librosa
+import numpy as np
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset, DataLoader
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
-# Configuration
-load_dotenv()
-API_KEY = os.getenv("API_KEY")
-BASE_DIR = os.getenv('YTB_DIR')
+from sklearn.metrics import classification_report, confusion_matrix
+import numpy as np
 
-# Fonction pour supprimer le répertoire existant
-def clear_directory(base_dir):
-    """Supprime le répertoire de base s'il existe."""
-    if os.path.exists(base_dir):
-        shutil.rmtree(base_dir)
-        print(f"Directory {base_dir} cleared.")
+# Fonction pour extraire l'émotion depuis le nom du fichier
+def extract_emotion_emodb(filename):
+    emotions_map = {
+        'W': 'anger',
+        'L': 'boredom',
+        'E': 'disgust',
+        'A': 'fear',
+        'F': 'happiness',
+        'T': 'sadness',
+        'N': 'neutral'
+    }
+    emotions_map_common = {
+        'W': 'anger',
+        'E': 'disgust',
+        'A': 'fear',
+        'F': 'happiness',
+        'T': 'sadness',
+        'N': 'neutral'
+    }
+    return emotions_map_common.get(filename[5], 'unknown')
 
-# Appeler la fonction pour nettoyer le répertoire au début
-#clear_directory(BASE_DIR)
-
-youtube = build('youtube', 'v3', developerKey=API_KEY)
-
-def create_video_directory(video_id):
-    """Crée un dossier pour la vidéo dans le répertoire de base."""
-    video_dir = os.path.join(BASE_DIR, video_id)
-    os.makedirs(video_dir, exist_ok=True)
-    return video_dir
-
-
-
-def get_all_comments(video_id):
-    """Récupère tous les commentaires d'une vidéo YouTube."""
-    comments = []
-    try:
-        request = youtube.commentThreads().list(
-            part='snippet',
-            videoId=video_id,
-            textFormat='plainText',
-            maxResults=100
-        )
-        
-        while request and len(comments) < 200:  # Continue jusqu'à ce que 100 commentaires soient récupérés
-            response = request.execute()
-            for item in response['items']:
-                comment = item['snippet']['topLevelComment']['snippet']['textDisplay']
-                # Filtrer les commentaires anglais de plus de n caractères
-                cleaned_comment = clean_comment(comment)
-                if len(cleaned_comment) > 55:
-                    if is_english(cleaned_comment) and is_quality_comment(cleaned_comment):
-                        comments.append(cleaned_comment)
-            
-            request = youtube.commentThreads().list_next(request, response)
-        print(f"{len(comments)} appropriate comments found")
-
-    except HttpError as e:
-        print(f"An error occurred while retrieving comments: {e}")
-    
-    return comments
-
-def clean_comment(comment):
-    """Supprime les caractères non valides d'un commentaire."""
-    # Conserve uniquement les lettres, les chiffres, les espaces, et les ponctuations courantes
-    return re.sub(r'[^a-zA-Z0-9\s.,;!?\'"()\-:~]', '', comment)
-
-def is_english(comment):
-    """Vérifie si le commentaire est en anglais."""
-    try:
-        # Détecte la langue du commentaire
-        return detect(comment) == 'en'
-    except:
-        return False  # Retourne False en cas d'erreur
-
-def is_quality_comment(comment, min_readability_score=95):
-    """Vérifie si le commentaire a un niveau de qualité acceptable."""
-    return (textstat.flesch_reading_ease(comment) >= min_readability_score)
-
-def save_comments(audio_folder, comments):
-    """Enregistre les commentaires dans un fichier CSV dans le même dossier que l'audio."""
-    filename = os.path.join(audio_folder, f'comments.csv')
-    
-    with open(filename, mode='w', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        writer.writerow(['comments'])
-        for comment in comments: # Nettoyer le commentaire
-            writer.writerow([comment])  # Écriture du commentaire nettoyé
-
-
-def download_audio(video_id):
-    """Télécharge l'audio de la vidéo YouTube et l'enregistre dans le dossier de la vidéo."""
-    video_dir = create_video_directory(video_id)
-    try:
-        url = f'https://www.youtube.com/watch?v={video_id}'
-        yt = YouTube(url)
-        audio_stream = yt.streams.filter(only_audio=True).first()
-        
-        if audio_stream is None:
-            print("No audio stream found for this video.")
-            return
-        
-        # Obtenir le nom de fichier sans extension
-        audio_file_path = os.path.join(video_dir, f"{video_id}.m4a")
-        mp3_file_path = os.path.join(video_dir, f"{video_id}.mp3")
-
-        # Télécharge l'audio dans le format du stream (WebM ou M4A)
-        audio_stream.download(output_path=video_dir, filename=f"{video_id}")
-        
-        # Load the .m4a file
-        audio = AudioSegment.from_file(audio_file_path, format="m4a")
-
-        # Export the audio as an MP3 file
-        audio.export(mp3_file_path, format="mp3")
-
-        os.remove(audio_file_path)
-        print(f"Audio converted to MP3 and saved")
-
-    except Exception as e:
-        print(f"An error occurred while downloading audio: {e}")
-
-
-def get_video_ids_from_playlist(playlist_id):
-    """Récupère tous les identifiants de vidéo dans une playlist YouTube."""
-    video_ids = []
-    try:
-        request = youtube.playlistItems().list(
-            part='contentDetails',
-            playlistId=playlist_id,
-            maxResults=50
-        )
-        
-        while request:
-            response = request.execute()
-            for item in response['items']:
-                video_ids.append(item['contentDetails']['videoId'])
+# Charger les données avec les séquences temporelles
+def load_data_with_temporal_features(path):
+    data = []
+    for root, _, files in os.walk(path):
+        for file in files:
+            if file.endswith('.wav'):
+                filepath = os.path.join(root, file)
+                emotion = extract_emotion_emodb(file)
                 
-            request = youtube.playlistItems().list_next(request, response)
+                if emotion!='unknown':
+                    # Charger l'audio
+                    y, sr = librosa.load(filepath, sr=None)
+                    
+                    # Extraire les MFCC
+                    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=50)
+                    
+                    data.append({
+                        'features': mfcc.T,  # Dimensions : (time_steps, n_mfcc)
+                        'label': emotion
+                    })
+    return data
+
+
+path = './EmoDB/wav/'
+data = load_data_with_temporal_features(path)
+
+
+# Encodage des labels
+label_encoder = LabelEncoder()
+labels = [item['label'] for item in data]
+encoded_labels = label_encoder.fit_transform(labels)
+
+# Récupération des caractéristiques et des étiquettes
+X = [torch.tensor(item['features'], dtype=torch.float32) for item in data]
+y = torch.tensor(encoded_labels, dtype=torch.long)
+
+# Trier les séquences par longueur (requis pour pack_padded_sequence)
+print('tri par longueur')
+sequence_lengths = [seq.shape[0] for seq in X]
+sorted_indices = np.argsort(-np.array(sequence_lengths))  # Tri décroissant
+X = [X[i] for i in sorted_indices]
+y = y[sorted_indices]
+sequence_lengths = [sequence_lengths[i] for i in sorted_indices]
+
+# Padding des séquences
+print('padding')
+max_seq_length = max(sequence_lengths)
+X_padded = torch.stack([torch.cat([seq, torch.zeros(max_seq_length - seq.shape[0], seq.shape[1])]) for seq in X])
+
+# Séparer les données en entraînement et test
+X_train, X_test, y_train, y_test, lengths_train, lengths_test = train_test_split(
+    X_padded, y, sequence_lengths, test_size=0.2, random_state=42
+)
+
+# Dataset et DataLoader
+class AudioTemporalDataset(Dataset):
+    def __init__(self, X, y, lengths):
+        self.X = X
+        self.y = y
+        self.lengths = lengths
     
-    except HttpError as e:
-        print(f"An error occurred while retrieving playlist: {e}")
+    def __len__(self):
+        return len(self.X)
     
-    return video_ids
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx], self.lengths[idx]
 
+print('separation test train')
+train_dataset = AudioTemporalDataset(X_train, y_train, lengths_train)
+test_dataset = AudioTemporalDataset(X_test, y_test, lengths_test)
 
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
 
-
-def create_fragments(BASE_DIR, video_id, nombre_extraits, extrait_duree):
-    audio_folder = BASE_DIR + '\\'+ str(video_id)
-    audio_file = os.path.join(audio_folder, f'{video_id}.mp3')
-    output_folder = os.path.join(BASE_DIR, 'fragments')
-
-    # Charger le fichier audio
-    try:
-        audio = AudioSegment.from_mp3(audio_file)
-    except Exception as e:
-        print(f"Erreur lors du chargement du fichier audio : {e}")
-        return
-    
-    # Obtenir la durée totale de l'audio (en millisecondes)
-    audio_duree = len(audio)
-    
-    # Créer le dossier de sortie s'il n'existe pas
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-    
-    # Extraire les extraits de manière aléatoire
-    for i in range(nombre_extraits):
-        # Calculer un point de départ aléatoire pour chaque extrait
-        start_time = random.randint(0, audio_duree - extrait_duree)
-
-        # Extraire l'extrait de 3 secondes
-        extrait = audio[start_time:start_time + extrait_duree]
-
-        # Exporter l'extrait dans un fichier MP3
-        try:
-            extrait.export(os.path.join(output_folder, f"{i + 1}_{video_id}.mp3"), format="mp3")
-        except Exception as e:
-            print(f"Erreur lors de l'exportation de l'extrait {i + 1} : {e}")
-
-    print(f"{nombre_extraits} extraits ont été extraits et enregistrés dans '{output_folder}'.")
-
-
-def process_video(video_id):
-    """Télécharge les commentaires et l'audio pour une vidéo spécifique."""
-    comments = get_all_comments(video_id)
-    if comments:
-        download_audio(video_id)
-        audio_folder = BASE_DIR + '\\'+ str(video_id)
-        save_comments(audio_folder, comments)
-        edc.create_emotion_summary(BASE_DIR,video_id)
-        create_fragments(BASE_DIR, video_id, 50, 6000)
+# Modèle LSTM
+class Model(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size, num_layers=1):
+        super(Model, self).__init__()
+        self.LSTM = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True, dropout=0.2)
+        self.fc = nn.Linear(hidden_size, output_size)
         
-    else:
-        print(f"No comments retrieved for video {video_id}.")
-    
+    def forward(self, input, lengths):
+        # Pack les séquences
+        packed_input = pack_padded_sequence(input, lengths, batch_first=True, enforce_sorted=False)
+        packed_output, (hidden, _) = self.LSTM(packed_input)
+        
+        # Décoder le dernier état caché (hidden state)
+        output, _ = pad_packed_sequence(packed_output, batch_first=True)
+        output = self.fc(hidden[-1])  # Utiliser le dernier état caché
+        return output
 
-def process_playlist(playlist_id):
-    """Gère une playlist entière : télécharge les commentaires et l'audio pour chaque vidéo."""
-    video_ids = get_video_ids_from_playlist(playlist_id)
-    print(f"Found {len(video_ids)} videos in the playlist.")
-    
-    for video_id in video_ids:
-        print(f"Processing video {video_id}")
-        process_video(video_id)
+# Initialisation du modèle
+input_size = X_padded.shape[2]
+hidden_size = 100
+output_size = len(label_encoder.classes_)
+num_layers = 4
 
-# Exemple d'appel
-PLAYLIST_ID_long1 = 'PLplXQ2cg9B_qrCVd1J_iId5SvP8Kf_BfS'
-PLAYLIST_ID_long2='PL15B1E77BB5708555'
-PLAYLIST_ID_fear='PLoLk2PysO2f0s9NnA7Drkb3V-12Cj8b8U'
-PLAYLIST_ID_anger='PLknqyEOvGo1YgL11BN1m-YOxaFHl29elY'
-process_playlist(PLAYLIST_ID_long1)
+model = Model(input_size, hidden_size, output_size, num_layers)
+
+# Critère et optimiseur
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+print("Données prêtes avec `pack_padded_sequence`.")
+
+# Fonction d'entraînement
+def train_model(model, train_loader, criterion, optimizer, num_epochs=10, device='cpu'):
+    model = model.to(device)
+    for epoch in range(num_epochs):
+        model.train()
+        running_loss = 0.0
+        correct_predictions = 0
+        total_samples = 0
+
+        for batch in train_loader:
+            inputs, labels, lengths = batch
+            inputs, labels = inputs.to(device), labels.to(device)
+            
+            # Passer les longueurs dans un tenseur sur le même device
+            lengths = torch.tensor(lengths, dtype=torch.long)
+
+            # Réinitialiser les gradients
+            optimizer.zero_grad()
+            
+            # Passage avant
+            outputs = model(inputs, lengths)
+            
+            # Calcul de la perte
+            loss = criterion(outputs, labels)
+            
+            # Passage arrière et optimisation
+            loss.backward()
+            optimizer.step()
+            
+            # Calcul des statistiques
+            running_loss += loss.item() * inputs.size(0)
+            _, predicted = torch.max(outputs, 1)
+            correct_predictions += (predicted == labels).sum().item()
+            total_samples += labels.size(0)
+        
+        epoch_loss = running_loss / total_samples
+        epoch_accuracy = correct_predictions / total_samples
+        
+        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {epoch_loss:.4f}, Accuracy: {epoch_accuracy:.4f}")
 
 
 
+def evaluate_model(model, test_loader, criterion, label_encoder, device='cpu'):
+    model.eval()  # Passer en mode évaluation
+    model.to(device)
 
+    running_loss = 0.0
+    total_samples = 0
+    all_predictions = []
+    all_labels = []
 
+    # Désactiver le calcul des gradients
+    with torch.no_grad():
+        for batch in test_loader:
+            inputs, labels, lengths = batch
+            inputs, labels = inputs.to(device), labels.to(device)
+            
+            # Conserver lengths sur le CPU pour `pack_padded_sequence`
+            lengths = torch.tensor(lengths, dtype=torch.long)
+            
+            # Passe avant
+            outputs = model(inputs, lengths)
+            
+            # Calcul de la perte
+            loss = criterion(outputs, labels)
+            running_loss += loss.item() * inputs.size(0)
+            
+            # Prédictions
+            _, predicted = torch.max(outputs, 1)
+            all_predictions.extend(predicted.cpu().numpy())
+            all_labels.extend(labels.cpu().numpy())
+            total_samples += labels.size(0)
 
+    # Calcul de la perte moyenne
+    test_loss = running_loss / total_samples
 
+    # Conversion des étiquettes et des prédictions
+    all_predictions = np.array(all_predictions)
+    all_labels = np.array(all_labels)
+
+    # Rapport détaillé par classe
+    class_names = label_encoder.classes_
+    report = classification_report(all_labels, all_predictions, target_names=class_names)
+    print(f"\nTest Loss: {test_loss:.4f}")
+    print("\nClassification Report:\n")
+    print(report)
+
+    # Matrice de confusion (optionnelle)
+    cm = confusion_matrix(all_labels, all_predictions)
+    print("\nConfusion Matrix:\n")
+    print(cm)
+
+    return test_loss, cm, report
+
+# Entraînement du modèle
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+train_model(model, train_loader, criterion, optimizer, num_epochs=20, device=device)
+
+# Évaluation du modèle
+evaluate_model(model, test_loader, criterion, label_encoder, device=device)
