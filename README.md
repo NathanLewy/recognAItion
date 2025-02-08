@@ -14,4 +14,4 @@ SVM, linear regression, AutoML & More
 
 ### `music_analysis`
 
-LSTM
+LSTM Models
